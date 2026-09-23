@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Lookup</string>
-    <string name="notification_channel_name">Walking watch</string>
+    <string name="app_name">lookup</string>
+    <string name="notification_channel_name">walking watch</string>
     <string name="notification_channel_description">Ongoing status of the distracted-walking warning.</string>
-    <string name="notification_title">Walking watch is on</string>
-    <string name="notification_text">Keep your head up — the bar turns red when you should look.</string>
+    <string name="notification_title">walking watch is on</string>
+    <string name="notification_text">Runs in the background. The bar appears only when you walk heads-down.</string>
     <string name="notification_action_stop">Stop</string>
 </resources>
