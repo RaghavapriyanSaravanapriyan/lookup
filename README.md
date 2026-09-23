@@ -1,8 +1,26 @@
-# Lookup
+# lookup
 
 An Android app that detects **distracted walking** — walking while looking at
-your phone — and shows a live **blue → amber → red** gradient bar over the
-status bar as a warning.
+your phone — and flashes a vivid **blue → amber → red** gradient bar over the
+status bar as a peripheral-vision cue to look up.
+
+## How it works (corrected architecture)
+
+- **Always-on background service.** Once the user enables protection, a
+  `specialUse` foreground service runs the detection continuously — it starts
+  on boot (via `BootReceiver`), survives being backgrounded, and persists a
+  single `systemEnabled` flag so an explicit "off" (dashboard toggle or
+  notification Stop) is the only thing that stops it. The user never has to
+  remember to turn it on for a walk.
+- **Conditionally-visible overlay.** The warning bar is *not* persistent. A
+  pure `OverlayGate` (show threshold 40, hide threshold 30, 250 ms rise / 400 ms
+  fall debounce) attaches the overlay view to the `WindowManager` only for the
+  duration of a detected distracted-walking moment, with a ~220 ms fade/scale
+  transition. Outside those moments there is zero visual presence.
+- **Dashboard UI.** The app itself is a thin dashboard over the service:
+  onboarding (one-time), dashboard (master toggle + live service/bar status +
+  sensitivity settings), and debug (live sensor chart + confidence). The app
+  does not need to be open for the feature to work.
 
 It fuses three signals, entirely on-device:
 
@@ -14,7 +32,6 @@ It fuses three signals, entirely on-device:
 
 A pure-Kotlin `DetectionEngine` combines them into a `0–100` confidence
 `StateFlow<Int>` with rolling self-calibration on the user's walking cadence.
-A foreground service hosts the engine and draws the overlay bar.
 
 ## Environment setup
 
@@ -82,8 +99,15 @@ Toolchain: AGP 8.7.3 · Kotlin 2.0.21 (Compose compiler plugin) · Compose BOM
 ./gradlew test    # unit tests only
 ```
 
-Definition of done for this pass was: `./gradlew build` succeeds and
-`./gradlew test` passes with meaningful `DetectionEngine` coverage.
+## CI
+
+`.github/workflows/build.yml` runs on every push to `main`: it checks out the
+repo, sets up Temurin JDK 17 and the Android SDK, runs `./gradlew build` and
+`./gradlew test`, and uploads the debug APK as a build artifact.
+
+To download a built APK: open the repository on GitHub → **Actions** tab →
+click the latest `build` workflow run → scroll to **Artifacts** → download
+`lookup-debug-apk` (contains `app-debug.apk`, installable via `adb install`).
 
 ## Architecture
 
@@ -92,19 +116,22 @@ app/src/main/java/dev/lookup/
 ├── detection/
 │   ├── DetectionEngine.kt    # pure Kotlin fusion engine (no Android deps)
 │   ├── Model.kt              # DetectionSettings, EngineSnapshot, SamplePoint
+│   ├── OverlayGate.kt        # pure visibility gate: threshold+hysteresis+debounce
 │   └── OverlayPalette.kt     # shared blue→amber→red ARGB gradient math
 ├── service/
 │   ├── OverlayService.kt     # specialUse foreground service, sensor wiring
 │   ├── OverlayBarView.kt     # WindowManager TYPE_APPLICATION_OVERLAY bar
-│   └── DetectionBus.kt      # service→UI StateFlow bridge
+│   ├── BootReceiver.kt       # BOOT_COMPLETED / MY_PACKAGE_REPLACED restart
+│   └── DetectionBus.kt       # service→UI StateFlow bridge
 ├── data/
-│   └── SettingsRepository.kt# persisted sensitivities + onboarding flag
+│   └── SettingsRepository.kt # sensitivities, onboarding flag, systemEnabled
 ├── ui/
-│   ├── OnboardingScreen.kt  # 3 pages: pitch, how it works, permissions+rationale
-│   ├── HomeScreen.kt        # Settings / Debug tabs
-│   ├── SettingsScreen.kt    # start/stop, sensitivity sliders, live preview
-│   ├── DebugScreen.kt       # live accel chart, step markers, confidence
-│   └── ConfidenceBar.kt     # Compose twin of the overlay bar
+│   ├── OnboardingScreen.kt   # 3 pages: pitch, how it works, permissions+rationale
+│   ├── HomeScreen.kt         # Dashboard / Debug tabs
+│   ├── DashboardScreen.kt    # master toggle, live status, sliders, preview
+│   ├── DebugScreen.kt        # live accel chart, step markers, confidence
+│   ├── ConfidenceBar.kt      # Compose twin of the overlay bar
+│   └── BatteryStatus.kt      # shared battery-exemption check helper
 ├── LookupApp.kt              # Application: settings init
 └── MainActivity.kt           # nav: onboarding → home
 ```
@@ -123,14 +150,25 @@ the cadence needed for a full walking score to 80 % of the user's own), and the
 amplitude estimate decays back to the population default while idle so the
 thresholds follow gait changes in both directions.
 
+**Overlay visibility.** `OverlayGate` turns the bar on after confidence holds
+≥ 40 for 250 ms, and off after it holds ≤ 30 for 400 ms; the 30–40 band holds
+the current state so boundary noise can't flicker it. The bar is attached to
+the `WindowManager` only while visible and detaches afterwards — a fixed 15 dp
+transparent window hosts a drawn bar of 5 dp → 12 dp (no relayout), with a
+220 ms fade/scale-in, 180 ms fade-out, full opacity throughout, and a 12 %
+height pulse above confidence 70. Gradient stops: `#2563EB→#3B82F6`
+(blue) → `#F59E0B→#FBBF24` (amber) → `#DC2626→#EF4444` (red).
+
 **Permissions flow.** Overlay (`SYSTEM_ALERT_WINDOW`) is requested with a
 rationale screen in onboarding and re-checked on every resume; notifications
-are requested on API 33+; the service runs as a `specialUse` foreground service
-on API 34+. If overlay permission is revoked mid-run, the service notices
-within ~2 s (or on the first failed window update), publishes
-`DetectionBus.overlayPermissionLost`, and stops itself; the Settings screen
-shows a re-grant banner. POST_NOTIFICATIONS denial never blocks detection —
-the FGS keeps running with the notification suppressed.
+are requested on API 33+; background exemption (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`)
+is requested in onboarding with the tradeoff stated plainly (skippable, strongly
+recommended); the service runs as a `specialUse` foreground service on API 34+
+and restarts on boot when `systemEnabled` is true. If overlay permission is
+revoked mid-run, the service notices within ~2 s (or on the first failed window
+update), detaches the bar, publishes `DetectionBus.overlayPermissionLost`, and
+stops itself; the dashboard shows a re-grant banner. POST_NOTIFICATIONS denial
+never blocks detection — the FGS keeps running with the notification suppressed.
 
 ## Unit tests
 
@@ -149,6 +187,12 @@ deviation bumps + gaussian noise + optional hand gestures and sway), covering:
 - calibration reset
 - screen off suppresses / screen on recovers
 - sensor-gap robustness and out-of-order timestamp handling
+
+`OverlayGateTest` feeds synthetic confidence ramps on a virtual clock (40 ms
+ticks), covering: sustained-rise appear timing, brief spikes ignored,
+hysteresis-band hold, sustained-drop disappear timing, brief dips ignored
+(no flicker), timer resets after band excursions, and inclusive boundary
+values.
 
 ## Assumptions
 
@@ -172,19 +216,41 @@ Decisions made without asking (per the ground rules):
    amplitude (clamped, sensitivity-scaled), baseline cadence EMA from
    sustained walking, and idle decay of the amplitude estimate (τ = 12 s after
    4 s idle) so thresholds follow gait changes in both directions. `reset` is
-   exposed in Settings.
+   exposed on the dashboard.
 6. **Settings storage.** `SharedPreferences` behind a `StateFlow` — two
-   sliders and an onboarding flag don't justify DataStore.
-7. **Overlay geometry.** Thin full-width bar, `Gravity.TOP` with
-   `FLAG_LAYOUT_IN_SCREEN`, height 3 dp → 9 dp with confidence, gentle alpha
-   pulse above confidence 70. Blue < 40 ≤ amber < 70 ≤ red.
+   sliders, an onboarding flag, and the `systemEnabled` boolean don't justify
+   DataStore.
+7. **Overlay visibility (§3).** Show at confidence ≥ 40 sustained 250 ms; hide
+   at ≤ 30 sustained 400 ms (10-point hysteresis band holds state); 220 ms
+   fade/scale-in, 180 ms fade-out; fixed 15 dp transparent window with the
+   drawn bar scaling 5 dp → 12 dp (no window relayout, no per-frame
+   `updateViewLayout`); full opacity at all visible confidences; 12 % height
+   pulse above confidence 70 instead of an alpha dip. Gradient stops:
+   `#2563EB→#3B82F6` / `#F59E0B→#FBBF24` / `#DC2626→#EF4444`.
 8. **Package name** `dev.lookup`, application id `dev.lookup`.
 9. **Sensor rates.** Accelerometer at `SENSOR_DELAY_GAME` (~50 Hz),
    proximity at `SENSOR_DELAY_NORMAL`. All engine timing derives from
    `SensorEvent.timestamp` (monotonic nanos), which keeps the engine pure and
-   unit-testable.
-10. **Debug tab icon** uses the material `Build` icon (the icon set bundled
-    with Compose is intentionally small; no extended-icons dependency).
+   unit-testable; the gate reuses the snapshot timestamp, so debounces share
+   that clock.
+10. **Debug tab icon** uses the material `Build` icon and the Dashboard tab the
+    `Home` icon (the icon set bundled with Compose is intentionally small; no
+    extended-icons dependency).
+11. **Boot receiver.** `exported=true` (protected system broadcast, no security
+    risk), plus `MY_PACKAGE_REPLACED` so app updates don't silently disable the
+    watch. The service additionally guards `systemEnabled` in `onCreate`
+    against stale sticky restarts, and the notification Stop action persists
+    `systemEnabled=false`.
+12. **Dashboard toggle semantics.** The Switch reflects the *actual* service
+    state (`DetectionBus.running`), not the persisted flag. Toggling on without
+    overlay permission opens the grant screen instead of starting; the user flips
+    it again after granting.
+13. **Battery exemption.** Skippable in onboarding with the tradeoff stated
+    plainly; the dashboard shows a "Fix" row while not exempt. The OEM prompt
+    behavior itself is unverifiable here (see below).
+14. **App identity.** Display name `lookup` (lowercase); launcher icon is a
+    blue→amber→red gradient pill on dark `#1A1C20`; notification icon kept as
+    the flat-white chevron glyph (already guideline-compliant). Version 0.2.0.
 
 ## Needs real-device verification
 
@@ -192,8 +258,23 @@ No Android device/emulator was available for this pass; everything below is
 **unverified on hardware**:
 
 - [ ] Overlay bar actually renders above the status bar on API 26–35
-      (`TYPE_APPLICATION_OVERLAY` + `FLAG_LAYOUT_IN_SCREEN` behavior varies by
-      OEM/inset policy).
+      (`TYPE_APPLICATION_OVERLAY` + `FLAG_LAYOUT_IN_SCREEN` z-order above
+      status-bar icons varies by OEM/inset policy).
+- [ ] Overlay visual clarity in real conditions: legibility in outdoor
+      sunlight, peripheral-vision salience of the 5–12 dp bar, whether the
+      220 ms/180 ms transitions feel instant-but-smooth and the 12 % height
+      pulse reads at high confidence.
+- [ ] Appear/disappear behavior on real walks: show-40/hide-30 thresholds and
+      250/400 ms debounces may need tuning for real sensor noise and gait
+      variability; watch for flicker at the boundary in the Debug tab.
+- [ ] Boot persistence across OEMs: reboot → service restarts when enabled;
+      credential-encrypted storage is unavailable before first unlock, so
+      behavior on direct-boot devices needs checking.
+- [ ] Real-world behavior of the `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
+      prompt (wording, grant rate, OEM-specific battery managers that ignore
+      it, e.g. aggressive task killers).
+- [ ] START_STICKY restart reliability after the process is killed
+      (swipe-away, low-memory killer) with and without the exemption.
 - [ ] Overlay permission flow end-to-end: onboarding rationale → grant in
       system settings → "Start protection" enabled.
 - [ ] API 34+ `specialUse` FGS starts without
@@ -201,7 +282,7 @@ No Android device/emulator was available for this pass; everything below is
       are a *release* concern, not a build one).
 - [ ] POST_NOTIFICATIONS runtime prompt appears on API 33+ and denial keeps
       detection running (notification suppressed).
-- [ ] Mid-run overlay revocation stops the service and shows the Settings
+- [ ] Mid-run overlay revocation detaches the bar and shows the dashboard
       banner within ~2 s.
 - [ ] Real accelerometer step detection across gaits (the 0.45× median
       threshold may need tuning for real sensor noise floors).
@@ -210,7 +291,8 @@ No Android device/emulator was available for this pass; everything below is
 - [ ] Tilt band 55°–120° feels right in-hand; tune with the Debug tab's live
       tilt readout.
 - [ ] Screen-state gating via `ACTION_SCREEN_OFF` broadcasts while the FGS
-      runs (doze/aggressive- battery managers on some OEMs).
+      runs (doze/aggressive battery managers on some OEMs).
 - [ ] Battery drain at ~50 Hz continuous sensing (target: negligible over a
       30-min walk).
-- [ ] Notification tap reopens the app; "Stop" action stops the service.
+- [ ] Notification tap reopens the app; "Stop" action stops the service and
+      persists the off state (no boot restart afterwards).
