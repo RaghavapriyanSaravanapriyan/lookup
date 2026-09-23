@@ -87,6 +87,14 @@ class OverlayService : Service(), SensorEventListener {
 
         startAsForeground()
 
+        // Guard against stale restarts (e.g. sticky restart after an explicit
+        // disable): an explicit stop persists systemEnabled=false, so the
+        // service must never come back on its own after that.
+        if (!SettingsRepository.systemEnabled) {
+            stopSelf()
+            return
+        }
+
         val accel = accelerometer
         if (accel == null) {
             // Without an accelerometer there is nothing to fuse; degrade quietly.
@@ -132,6 +140,10 @@ class OverlayService : Service(), SensorEventListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                // An explicit stop is the user saying "off" — persist it so
+                // neither the sticky restart nor the boot receiver brings the
+                // service back.
+                SettingsRepository.systemEnabled = false
                 stopSelf()
                 return START_NOT_STICKY
             }

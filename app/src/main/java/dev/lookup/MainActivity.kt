@@ -39,6 +39,7 @@ private fun LookupNav() {
             OnboardingScreen { startProtection ->
                 SettingsRepository.onboardingCompleted = true
                 if (startProtection && Settings.canDrawOverlays(context)) {
+                    SettingsRepository.systemEnabled = true
                     OverlayService.start(context)
                 }
                 navController.navigate("home") {

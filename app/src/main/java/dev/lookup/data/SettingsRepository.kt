@@ -15,6 +15,7 @@ object SettingsRepository {
     private const val KEY_MOTION_SENSITIVITY = "motion_sensitivity"
     private const val KEY_LOOK_SENSITIVITY = "look_sensitivity"
     private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+    private const val KEY_SYSTEM_ENABLED = "system_enabled"
 
     private lateinit var prefs: SharedPreferences
 
@@ -46,5 +47,17 @@ object SettingsRepository {
         get() = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
         set(value) {
             prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETED, value).apply()
+        }
+
+    /**
+     * The user's master switch for the whole system. When true, the detection
+     * service is expected to be running (and is restarted on boot); when the
+     * user explicitly turns it off — dashboard toggle or notification Stop —
+     * the service must not come back on its own.
+     */
+    var systemEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SYSTEM_ENABLED, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_SYSTEM_ENABLED, value).apply()
         }
 }
