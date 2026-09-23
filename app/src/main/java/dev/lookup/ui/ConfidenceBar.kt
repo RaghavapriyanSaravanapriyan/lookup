@@ -14,13 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.lookup.detection.OverlayPalette
+import kotlin.math.min
 
 /**
  * Compose twin of the overlay warning bar: blue -> amber -> red gradient that
- * shifts with confidence, grows a little, and pulses at high confidence.
- * Used by the settings preview and the debug screen.
+ * shifts with confidence, drawn 5 dp -> 12 dp inside a fixed 15 dp frame —
+ * the same geometry as the real overlay. Full opacity throughout; at high
+ * confidence it pulses via a slight height swell.
+ * Used by the settings/dashboard preview and the debug screen.
  */
 @Composable
 fun ConfidenceBar(confidence: Float, modifier: Modifier = Modifier) {
@@ -38,15 +42,16 @@ fun ConfidenceBar(confidence: Float, modifier: Modifier = Modifier) {
             pulse.snapTo(0f)
         }
     }
-    val height = (3 + 6 * (animated / 100f)).dp
-    val (colorA, colorB) = OverlayPalette.colors(animated)
-    Canvas(modifier.height(height)) {
-        val corner = CornerRadius(size.height / 2f, size.height / 2f)
-        val alpha = if (pulsing) 0.78f + 0.22f * pulse.value else 1f
+    val density = LocalDensity.current
+    Canvas(modifier.height(15.dp)) {
+        val pulseBoost = if (pulsing) 1f + 0.12f * pulse.value else 1f
+        val basePx = with(density) { (5 + 7 * (animated / 100f)).dp.toPx() }
+        val barH = min(basePx * pulseBoost, size.height)
+        val corner = CornerRadius(barH / 2f, barH / 2f)
+        val (colorA, colorB) = OverlayPalette.colors(animated)
         drawRoundRect(
             brush = Brush.horizontalGradient(listOf(Color(colorA), Color(colorB))),
             cornerRadius = corner,
-            alpha = alpha,
         )
     }
 }

@@ -5,12 +5,14 @@ package dev.lookup.detection
  * Shared by the overlay View and the Compose preview so both render identically.
  */
 object OverlayPalette {
-    val BLUE_A = 0xFF2E6BFF.toInt()
-    val BLUE_B = 0xFF69A5FF.toInt()
+    // Vivid, saturated stops chosen for peripheral-vision legibility: deep
+    // anchor colors, brighter B endpoint for a subtle left-to-right shift.
+    val BLUE_A = 0xFF2563EB.toInt()
+    val BLUE_B = 0xFF3B82F6.toInt()
     val AMBER_A = 0xFFF59E0B.toInt()
-    val AMBER_B = 0xFFFFC94D.toInt()
-    val RED_A = 0xFFE5484D.toInt()
-    val RED_B = 0xFFFF8A8A.toInt()
+    val AMBER_B = 0xFFFBBF24.toInt()
+    val RED_A = 0xFFDC2626.toInt()
+    val RED_B = 0xFFEF4444.toInt()
 
     /** Confidence (0..100) at which the pulse animation kicks in. */
     const val PULSE_CONFIDENCE = 70f

@@ -16,4 +16,6 @@ object DetectionBus {
     val snapshot: MutableStateFlow<EngineSnapshot> = MutableStateFlow(EngineSnapshot.INITIAL)
     val running: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val overlayPermissionLost: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    /** True while the warning bar is attached to the window (fading in counts). */
+    val overlayActive: MutableStateFlow<Boolean> = MutableStateFlow(false)
 }

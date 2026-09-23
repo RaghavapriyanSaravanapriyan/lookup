@@ -27,17 +27,23 @@ import dev.lookup.R
 import dev.lookup.data.SettingsRepository
 import dev.lookup.detection.DetectionEngine
 import dev.lookup.detection.EngineSnapshot
+import dev.lookup.detection.OverlayGate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 /**
  * Foreground service that hosts the [DetectionEngine] and the overlay warning
  * bar. All sensor delivery happens on the main thread, which is also where the
  * engine's state flows are consumed — no cross-thread coordination needed.
+ *
+ * The overlay bar is NOT always visible: an [OverlayGate] (threshold +
+ * hysteresis + debounce) decides from each snapshot whether the bar should be
+ * shown, and the view is attached to the WindowManager only for the duration
+ * of an active distracted-walking moment. Outside of that there is zero
+ * visual presence.
  *
  * Permission robustness: the overlay permission is re-checked periodically and
  * whenever the window fails. If the user revokes "display over other apps" while
@@ -68,6 +74,10 @@ class OverlayService : Service(), SensorEventListener {
     private var proximity: Sensor? = null
     private var overlayView: OverlayBarView? = null
     private var overlayParams: WindowManager.LayoutParams? = null
+    private var overlayAttached = false
+    private var overlayFadingOut = false
+    private var overlayDesired = false
+    private val gate = OverlayGate()
     private var screenReceiver: BroadcastReceiver? = null
     private var overlayCheckCounter = 0
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -106,8 +116,8 @@ class OverlayService : Service(), SensorEventListener {
             SettingsRepository.settings.collect { engine.onSettingsChanged(it) }
         }
 
-        addOverlayIfPossible()
-
+        // The overlay bar attaches lazily: only while the gate says an active
+        // distracted-walking moment is in progress.
         sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_GAME)
         proximity?.let { sensor ->
             sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
@@ -159,9 +169,7 @@ class OverlayService : Service(), SensorEventListener {
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
         screenReceiver?.let { runCatching { unregisterReceiver(it) } }
-        overlayView?.let { view -> runCatching { windowManager.removeView(view) } }
-        overlayView = null
-        overlayParams = null
+        detachOverlayImmediately()
         DetectionBus.running.value = false
         scope.cancel()
         super.onDestroy()
@@ -225,15 +233,11 @@ class OverlayService : Service(), SensorEventListener {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
     }
 
-    private fun addOverlayIfPossible() {
-        if (!Settings.canDrawOverlays(this)) {
-            onOverlayPermissionLost()
-            return
-        }
+    private fun attachOverlay() {
         val view = OverlayBarView(this)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            OverlayBarView.heightFor(resources.displayMetrics.density, 0f),
+            OverlayBarView.windowHeightPx(resources.displayMetrics.density),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
@@ -245,6 +249,9 @@ class OverlayService : Service(), SensorEventListener {
         overlayParams = params
         try {
             windowManager.addView(view, params)
+            overlayAttached = true
+            view.appear()
+            DetectionBus.overlayActive.value = true
         } catch (e: Exception) {
             overlayView = null
             overlayParams = null
@@ -252,9 +259,32 @@ class OverlayService : Service(), SensorEventListener {
         }
     }
 
-    private fun onEngineSnapshot(snapshot: EngineSnapshot) {
+    /** Fades the bar out, then detaches — unless the gate re-armed meanwhile. */
+    private fun fadeOutOverlay() {
         val view = overlayView ?: return
-        val params = overlayParams ?: return
+        overlayFadingOut = true
+        DetectionBus.overlayActive.value = false
+        view.disappear {
+            overlayFadingOut = false
+            if (overlayDesired) {
+                overlayView?.appear()
+                DetectionBus.overlayActive.value = true
+            } else {
+                detachOverlayImmediately()
+            }
+        }
+    }
+
+    private fun detachOverlayImmediately() {
+        overlayView?.let { view -> runCatching { windowManager.removeView(view) } }
+        overlayView = null
+        overlayParams = null
+        overlayAttached = false
+        overlayFadingOut = false
+        DetectionBus.overlayActive.value = false
+    }
+
+    private fun onEngineSnapshot(snapshot: EngineSnapshot) {
         if (++overlayCheckCounter >= OVERLAY_CHECK_INTERVAL_TICKS) {
             overlayCheckCounter = 0
             if (!Settings.canDrawOverlays(this)) {
@@ -262,19 +292,24 @@ class OverlayService : Service(), SensorEventListener {
                 return
             }
         }
-        view.setConfidence(snapshot.confidence)
-        val targetHeight = OverlayBarView.heightFor(resources.displayMetrics.density, snapshot.confidence)
-        if (abs(targetHeight - params.height) > 1) {
-            params.height = targetHeight
-            try {
-                windowManager.updateViewLayout(view, params)
-            } catch (e: Exception) {
-                onOverlayPermissionLost()
+        overlayDesired = gate.onConfidence(snapshot.confidence, snapshot.timestampNanos)
+        if (overlayDesired) {
+            if (overlayFadingOut) {
+                // Confidence rose again mid-fade: cancel the fade, keep the view.
+                overlayFadingOut = false
+                overlayView?.appear()
+                DetectionBus.overlayActive.value = true
+            } else if (!overlayAttached) {
+                attachOverlay()
             }
+            overlayView?.setConfidence(snapshot.confidence)
+        } else if (overlayAttached && !overlayFadingOut) {
+            fadeOutOverlay()
         }
     }
 
     private fun onOverlayPermissionLost() {
+        detachOverlayImmediately()
         DetectionBus.overlayPermissionLost.value = true
         stopSelf()
     }

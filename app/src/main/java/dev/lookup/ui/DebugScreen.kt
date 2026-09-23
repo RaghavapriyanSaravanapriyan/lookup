@@ -45,6 +45,7 @@ import kotlin.math.roundToInt
 fun DebugScreen(modifier: Modifier = Modifier) {
     val running by DetectionBus.running.collectAsStateWithLifecycle()
     val snapshot by DetectionBus.snapshot.collectAsStateWithLifecycle()
+    val overlayActive by DetectionBus.overlayActive.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -78,6 +79,7 @@ fun DebugScreen(modifier: Modifier = Modifier) {
                 Spacer(Modifier.height(16.dp))
                 EvidenceRow("Walking evidence", snapshot.walkingScore)
                 EvidenceRow("Phone in view", snapshot.phoneInViewScore)
+                EvidenceRow("Warning bar", if (overlayActive) 1f else 0f)
             }
         }
 
