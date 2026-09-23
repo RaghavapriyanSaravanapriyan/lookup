@@ -1,11 +1,9 @@
 package dev.lookup.ui
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -84,7 +82,7 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
         )
     }
     var batteryExempt by remember {
-        mutableStateOf(isIgnoringBatteryOptimizations(context))
+        mutableStateOf(context.isIgnoringBatteryOptimizations())
     }
 
     // Re-check permissions every time the app comes back to the front (the
@@ -97,7 +95,7 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
         }
-        batteryExempt = isIgnoringBatteryOptimizations(context)
+        batteryExempt = context.isIgnoringBatteryOptimizations()
         onPauseOrDispose { }
     }
 
@@ -111,7 +109,7 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
     ) { granted -> notificationsGranted = granted }
     val batteryExemptionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
-    ) { batteryExempt = isIgnoringBatteryOptimizations(context) }
+    ) { batteryExempt = context.isIgnoringBatteryOptimizations() }
 
     val openOverlaySettings = {
         overlaySettingsLauncher.launch(
@@ -375,11 +373,6 @@ private fun PermissionsPage(
             onAction = onGrantBatteryExemption,
         )
     }
-}
-
-private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
-    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
 
 @Composable

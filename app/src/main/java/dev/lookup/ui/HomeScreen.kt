@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,7 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 
 /**
- * Main screen with the two post-onboarding destinations: Settings and Debug.
+ * Main screen: the dashboard over the always-on service, plus the debug view.
  */
 @Composable
 fun HomeScreen() {
@@ -30,8 +30,8 @@ fun HomeScreen() {
                 NavigationBarItem(
                     selected = tab == 0,
                     onClick = { tab = 0 },
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    label = { Text("Settings") },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = null) },
+                    label = { Text("Dashboard") },
                 )
                 NavigationBarItem(
                     selected = tab == 1,
@@ -43,7 +43,7 @@ fun HomeScreen() {
         },
     ) { innerPadding ->
         when (tab) {
-            0 -> SettingsScreen(Modifier.padding(innerPadding))
+            0 -> DashboardScreen(Modifier.padding(innerPadding))
             else -> DebugScreen(Modifier.padding(innerPadding))
         }
     }

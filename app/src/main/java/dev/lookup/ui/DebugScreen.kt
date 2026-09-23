@@ -62,7 +62,7 @@ fun DebugScreen(modifier: Modifier = Modifier) {
                     Text("Confidence", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     if (!running) {
                         Text(
-                            "off \u2014 start protection in Settings",
+                            "off \u2014 turn on protection on the Dashboard",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
