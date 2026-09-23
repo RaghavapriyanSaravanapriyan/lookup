@@ -1,9 +1,11 @@
 package dev.lookup.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -81,6 +83,9 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
             ) == PackageManager.PERMISSION_GRANTED,
         )
     }
+    var batteryExempt by remember {
+        mutableStateOf(isIgnoringBatteryOptimizations(context))
+    }
 
     // Re-check permissions every time the app comes back to the front (the
     // overlay grant happens in system settings, not in-app).
@@ -92,6 +97,7 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
         }
+        batteryExempt = isIgnoringBatteryOptimizations(context)
         onPauseOrDispose { }
     }
 
@@ -103,11 +109,22 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
     val notificationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> notificationsGranted = granted }
+    val batteryExemptionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { batteryExempt = isIgnoringBatteryOptimizations(context) }
 
     val openOverlaySettings = {
         overlaySettingsLauncher.launch(
             Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                "package:${context.packageName}".toUri(),
+            ),
+        )
+    }
+    val openBatteryExemption = {
+        batteryExemptionLauncher.launch(
+            Intent(
+                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                 "package:${context.packageName}".toUri(),
             ),
         )
@@ -134,6 +151,8 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
                     onGrantNotifications = {
                         notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     },
+                    batteryExempt = batteryExempt,
+                    onGrantBatteryExemption = openBatteryExemption,
                 )
             }
         }
@@ -306,6 +325,8 @@ private fun PermissionsPage(
     needsNotifications: Boolean,
     notificationsGranted: Boolean,
     onGrantNotifications: () -> Unit,
+    batteryExempt: Boolean,
+    onGrantBatteryExemption: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -313,7 +334,7 @@ private fun PermissionsPage(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Two things to allow", style = MaterialTheme.typography.headlineMedium)
+        Text("Three things to allow", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(20.dp))
         PermissionCard(
             title = "Draw over other apps",
@@ -341,7 +362,24 @@ private fun PermissionsPage(
             },
             onAction = onGrantNotifications,
         )
+        Spacer(Modifier.height(16.dp))
+        PermissionCard(
+            title = "Run in the background",
+            body = "The watch only works if it can run continuously — that's the whole " +
+                "feature. Without this exemption most phone brands will kill it within " +
+                "minutes of you pocketing the phone, and the bar won't be there when " +
+                "you need it. You can skip this, but expect the service to be " +
+                "unreliable on many devices.",
+            granted = batteryExempt,
+            actionLabel = if (batteryExempt) null else "Allow in background",
+            onAction = onGrantBatteryExemption,
+        )
     }
+}
+
+private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
 
 @Composable
