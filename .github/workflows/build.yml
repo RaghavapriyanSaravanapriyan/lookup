@@ -19,6 +19,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # NOTE: the action defaults to `tools platform-tools`, but the
+          # obsolete `tools` package no longer exists and fails the step, so
+          # the exact packages this build needs are listed explicitly.
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
 
       - name: Build (assemble, lint, unit tests)
         run: ./gradlew build --stacktrace
