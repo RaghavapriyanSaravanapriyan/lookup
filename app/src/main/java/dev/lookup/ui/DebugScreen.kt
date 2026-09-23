@@ -30,8 +30,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.lookup.R
 import dev.lookup.detection.EngineSnapshot
 import dev.lookup.service.DetectionBus
 import kotlin.math.roundToInt
@@ -59,10 +61,14 @@ fun DebugScreen(modifier: Modifier = Modifier) {
         Card {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Confidence", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Text(
+                        stringResource(R.string.debug_confidence),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
                     if (!running) {
                         Text(
-                            "off \u2014 turn on protection on the Dashboard",
+                            stringResource(R.string.debug_off_hint),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -77,19 +83,27 @@ fun DebugScreen(modifier: Modifier = Modifier) {
                 Spacer(Modifier.height(8.dp))
                 ConfidenceBar(snapshot.confidence)
                 Spacer(Modifier.height(16.dp))
-                EvidenceRow("Walking evidence", snapshot.walkingScore)
-                EvidenceRow("Phone in view", snapshot.phoneInViewScore)
-                EvidenceRow("Warning bar", if (overlayActive) 1f else 0f)
+                EvidenceRow(
+                    stringResource(R.string.debug_evidence_walking),
+                    snapshot.walkingScore,
+                )
+                EvidenceRow(
+                    stringResource(R.string.debug_evidence_view),
+                    snapshot.phoneInViewScore,
+                )
+                EvidenceRow(
+                    stringResource(R.string.debug_evidence_bar),
+                    if (overlayActive) 1f else 0f,
+                )
             }
         }
 
         Card {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Linear acceleration", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.debug_chart_title), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Line: deviation from gravity \u00B7 Dashed: step threshold \u00B7 " +
-                        "Marks: detected steps",
+                    stringResource(R.string.debug_chart_legend),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -100,26 +114,54 @@ fun DebugScreen(modifier: Modifier = Modifier) {
 
         Card {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Fusion inputs", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.debug_inputs_title), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(12.dp))
                 StatGrid(
                     listOf(
-                        Stat("Cadence", "${snapshot.cadenceSpm.roundToInt()} spm"),
-                        Stat("Tilt", "${snapshot.tiltDeg.roundToInt()}\u00B0"),
-                        Stat("Screen", if (snapshot.screenOn) "On" else "Off"),
                         Stat(
-                            "Proximity",
+                            stringResource(R.string.debug_stat_cadence),
+                            stringResource(
+                                R.string.debug_stat_cadence_value,
+                                snapshot.cadenceSpm.roundToInt(),
+                            ),
+                        ),
+                        Stat(
+                            stringResource(R.string.debug_stat_tilt),
+                            stringResource(
+                                R.string.debug_stat_tilt_value,
+                                snapshot.tiltDeg.roundToInt(),
+                            ),
+                        ),
+                        Stat(
+                            stringResource(R.string.debug_stat_screen),
+                            if (snapshot.screenOn) {
+                                stringResource(R.string.debug_on)
+                            } else {
+                                stringResource(R.string.debug_off)
+                            },
+                        ),
+                        Stat(
+                            stringResource(R.string.debug_stat_proximity),
                             when (snapshot.proximityNear) {
-                                true -> "Near"
-                                false -> "Far"
+                                true -> stringResource(R.string.debug_near)
+                                false -> stringResource(R.string.debug_far)
                                 null -> "\u2014"
                             },
                         ),
-                        Stat("Threshold", "%.2f m/s\u00B2".format(snapshot.calibratedThreshold)),
                         Stat(
-                            "Baseline",
+                            stringResource(R.string.debug_stat_threshold),
+                            stringResource(
+                                R.string.debug_stat_threshold_value,
+                                snapshot.calibratedThreshold,
+                            ),
+                        ),
+                        Stat(
+                            stringResource(R.string.debug_stat_baseline),
                             if (snapshot.baselineCadenceSpm > 0f) {
-                                "${snapshot.baselineCadenceSpm.roundToInt()} spm"
+                                stringResource(
+                                    R.string.debug_stat_baseline_value,
+                                    snapshot.baselineCadenceSpm.roundToInt(),
+                                )
                             } else {
                                 "\u2014"
                             },
@@ -181,6 +223,12 @@ private fun StatGrid(stats: List<Stat>) {
 private fun AccelChart(snapshot: EngineSnapshot) {
     val density = LocalDensity.current
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val unitLabel = stringResource(R.string.debug_chart_unit)
+    val thresholdLabel = stringResource(
+        R.string.debug_chart_threshold_label,
+        snapshot.calibratedThreshold,
+    )
+    val windowLabel = stringResource(R.string.debug_chart_window)
     val labelPaint = remember(density, labelColor) {
         android.graphics.Paint().apply {
             isAntiAlias = true
@@ -249,14 +297,14 @@ private fun AccelChart(snapshot: EngineSnapshot) {
 
         // Axis annotations.
         drawContext.canvas.nativeCanvas.apply {
-            drawText("m/s\u00B2", 6f, 16f, labelPaint)
+            drawText(unitLabel, 6f, 16f, labelPaint)
             drawText(
-                "threshold %.2f".format(snapshot.calibratedThreshold),
+                thresholdLabel,
                 6f,
                 thresholdY - 8f,
                 labelPaint,
             )
-            drawText("last 10 s", w - 56f, h - 8f, labelPaint)
+            drawText(windowLabel, w - 56f, h - 8f, labelPaint)
         }
     }
 }

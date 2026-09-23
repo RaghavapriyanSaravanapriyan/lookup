@@ -32,6 +32,15 @@ class OverlayBarView(context: Context) : View(context) {
     private var pulsePhase = 0f
     private var transition: ValueAnimator? = null
 
+    // Preallocated draw state: colors update on setConfidence (snapshot rate),
+    // the shader is rebuilt only when width or colors change — never per frame.
+    private var colorA = OverlayPalette.BLUE_A
+    private var colorB = OverlayPalette.BLUE_B
+    private var cachedShader: LinearGradient? = null
+    private var cachedShaderW = 0f
+    private var cachedShaderA = 0
+    private var cachedShaderB = 0
+
     private val pulseAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
         duration = PULSE_DURATION_MS
         repeatMode = ValueAnimator.REVERSE
@@ -44,6 +53,10 @@ class OverlayBarView(context: Context) : View(context) {
 
     fun setConfidence(value: Float) {
         confidence = value.coerceIn(0f, 100f)
+        OverlayPalette.colors(confidence).also { (a, b) ->
+            colorA = a
+            colorB = b
+        }
         val shouldPulse = confidence >= OverlayPalette.PULSE_CONFIDENCE
         if (shouldPulse && !pulseAnimator.isRunning) pulseAnimator.start()
         if (!shouldPulse && pulseAnimator.isRunning) {
@@ -105,8 +118,15 @@ class OverlayBarView(context: Context) : View(context) {
         val barH = min(barHeightPx(resources.displayMetrics.density, confidence) * reveal * pulseBoost, windowH)
         if (barH <= 0.5f) return
 
-        val (colorA, colorB) = OverlayPalette.colors(confidence)
-        barPaint.shader = LinearGradient(0f, 0f, w, 0f, colorA, colorB, Shader.TileMode.CLAMP)
+        val cached = cachedShader
+        if (cached == null || w != cachedShaderW || colorA != cachedShaderA || colorB != cachedShaderB) {
+            cachedShader = LinearGradient(0f, 0f, w, 0f, colorA, colorB, Shader.TileMode.CLAMP).also {
+                barPaint.shader = it
+            }
+            cachedShaderW = w
+            cachedShaderA = colorA
+            cachedShaderB = colorB
+        }
         barPaint.alpha = (255 * reveal.coerceIn(0f, 1f)).toInt()
         canvas.drawRoundRect(0f, 0f, w, barH, barH / 2f, barH / 2f, barPaint)
     }

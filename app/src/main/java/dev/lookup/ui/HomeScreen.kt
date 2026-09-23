@@ -16,6 +16,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import dev.lookup.R
 
 /**
  * Main screen: the dashboard over the always-on service, plus the debug view.
@@ -31,13 +33,13 @@ fun HomeScreen() {
                     selected = tab == 0,
                     onClick = { tab = 0 },
                     icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-                    label = { Text("Dashboard") },
+                    label = { Text(stringResource(R.string.tab_dashboard)) },
                 )
                 NavigationBarItem(
                     selected = tab == 1,
                     onClick = { tab = 1 },
                     icon = { Icon(Icons.Filled.Build, contentDescription = null) },
-                    label = { Text("Debug") },
+                    label = { Text(stringResource(R.string.tab_debug)) },
                 )
             }
         },

@@ -1,6 +1,7 @@
 package dev.lookup.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -49,11 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.lookup.R
 import kotlinx.coroutines.launch
 
 private const val PAGE_COUNT = 3
@@ -62,7 +65,11 @@ private const val PAGE_COUNT = 3
  * Three-page onboarding: what the app does, how detection works, and the
  * permission rationale + grants (overlay is required, notifications where
  * applicable). The last page's primary action starts protection immediately.
+ *
+ * POST_NOTIFICATIONS references are runtime-gated to API 33+; the constant is
+ * compile-time inlined so referencing it on older releases is safe.
  */
+@SuppressLint("InlinedApi")
 @Composable
 fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
     val context = LocalContext.current
@@ -189,7 +196,7 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
                             pagerState.animateScrollToPage(pagerState.currentPage - 1)
                         }
                     },
-                ) { Text("Back") }
+                ) { Text(stringResource(R.string.onboarding_back)) }
             }
             Spacer(Modifier.weight(1f))
             if (pagerState.currentPage < PAGE_COUNT - 1) {
@@ -199,19 +206,19 @@ fun OnboardingScreen(onDone: (startProtection: Boolean) -> Unit) {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
                         }
                     },
-                ) { Text("Next") }
+                ) { Text(stringResource(R.string.onboarding_next)) }
             } else {
-                TextButton(onClick = { onDone(false) }) { Text("Not now") }
+                TextButton(onClick = { onDone(false) }) { Text(stringResource(R.string.onboarding_not_now)) }
                 Spacer(Modifier.width(12.dp))
                 Button(
                     enabled = overlayGranted,
                     onClick = { onDone(true) },
-                ) { Text("Start protection") }
+                ) { Text(stringResource(R.string.onboarding_start)) }
             }
         }
         if (pagerState.currentPage == PAGE_COUNT - 1 && !overlayGranted) {
             Text(
-                "Grant overlay access to enable protection.",
+                stringResource(R.string.onboarding_overlay_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -238,19 +245,17 @@ private fun IntroPage() {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Walk more.\nScroll less.", style = MaterialTheme.typography.displaySmall)
+        Text(stringResource(R.string.onboarding_intro_title), style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(16.dp))
         Text(
-            "Lookup senses when you're walking with your eyes on the screen and " +
-                "raises a warning bar over your status bar — blue, then amber, then red " +
-                "as the risk climbs.",
+            stringResource(R.string.onboarding_intro_body),
             style = MaterialTheme.typography.bodyLarge,
         )
         Spacer(Modifier.height(32.dp))
         ConfidenceBar(demo.value)
         Spacer(Modifier.height(8.dp))
         Text(
-            "This is how the bar reacts as confidence grows.",
+            stringResource(R.string.onboarding_intro_demo_caption),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -265,25 +270,22 @@ private fun HowItWorksPage() {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("How detection works", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.onboarding_how_title), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(24.dp))
         NumberedStep(
             number = 1,
-            title = "It hears your steps",
-            body = "Your accelerometer reveals a walking rhythm. The engine learns " +
-                "your gait over time and tunes itself to it.",
+            title = stringResource(R.string.onboarding_step1_title),
+            body = stringResource(R.string.onboarding_step1_body),
         )
         NumberedStep(
             number = 2,
-            title = "It sees where the phone is",
-            body = "The tilt of the screen and the proximity sensor tell the engine " +
-                "whether the display is up in front of your face — or in your pocket.",
+            title = stringResource(R.string.onboarding_step2_title),
+            body = stringResource(R.string.onboarding_step2_body),
         )
         NumberedStep(
             number = 3,
-            title = "It warns you in real time",
-            body = "Walking while looking at the screen makes the bar turn red. " +
-                "Everything runs on your device; nothing ever leaves your phone.",
+            title = stringResource(R.string.onboarding_step3_title),
+            body = stringResource(R.string.onboarding_step3_body),
         )
     }
 }
@@ -332,44 +334,41 @@ private fun PermissionsPage(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Three things to allow", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.onboarding_permissions_title), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(20.dp))
         PermissionCard(
-            title = "Draw over other apps",
-            body = "The warning must appear above whatever app you're walking with. " +
-                "Lookup draws only a thin bar at the top of the screen — nothing else.",
+            title = stringResource(R.string.onboarding_overlay_title),
+            body = stringResource(R.string.onboarding_overlay_body),
             granted = overlayGranted,
-            actionLabel = if (overlayGranted) null else "Allow overlay",
+            actionLabel = if (overlayGranted) null else stringResource(R.string.onboarding_overlay_action),
             onAction = onGrantOverlay,
         )
         Spacer(Modifier.height(16.dp))
         PermissionCard(
-            title = if (needsNotifications) "Notifications" else "Notifications (not needed)",
-            body = if (needsNotifications) {
-                "Android requires an ongoing notification while the sensor service " +
-                    "runs in the background. It stays silent and never interrupts you."
+            title = if (needsNotifications) {
+                stringResource(R.string.onboarding_notifications_title)
             } else {
-                "Your Android version shows the background notification without " +
-                    "asking for permission."
+                stringResource(R.string.onboarding_notifications_title_not_needed)
+            },
+            body = if (needsNotifications) {
+                stringResource(R.string.onboarding_notifications_body)
+            } else {
+                stringResource(R.string.onboarding_notifications_body_not_needed)
             },
             granted = !needsNotifications || notificationsGranted,
             actionLabel = when {
                 !needsNotifications -> null
                 notificationsGranted -> null
-                else -> "Allow notifications"
+                else -> stringResource(R.string.onboarding_notifications_action)
             },
             onAction = onGrantNotifications,
         )
         Spacer(Modifier.height(16.dp))
         PermissionCard(
-            title = "Run in the background",
-            body = "The watch only works if it can run continuously — that's the whole " +
-                "feature. Without this exemption most phone brands will kill it within " +
-                "minutes of you pocketing the phone, and the bar won't be there when " +
-                "you need it. You can skip this, but expect the service to be " +
-                "unreliable on many devices.",
+            title = stringResource(R.string.onboarding_battery_title),
+            body = stringResource(R.string.onboarding_battery_body),
             granted = batteryExempt,
-            actionLabel = if (batteryExempt) null else "Allow in background",
+            actionLabel = if (batteryExempt) null else stringResource(R.string.onboarding_battery_action),
             onAction = onGrantBatteryExemption,
         )
     }
@@ -415,5 +414,13 @@ private fun PermissionStatus(granted: Boolean) {
     } else {
         MaterialTheme.colorScheme.tertiary
     }
-    Icon(icon, contentDescription = if (granted) "Granted" else "Not granted", tint = tint)
+    Icon(
+        icon,
+        contentDescription = if (granted) {
+            stringResource(R.string.onboarding_status_granted)
+        } else {
+            stringResource(R.string.onboarding_status_not_granted)
+        },
+        tint = tint,
+    )
 }

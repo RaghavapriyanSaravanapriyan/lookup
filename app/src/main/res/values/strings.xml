@@ -6,4 +6,111 @@
     <string name="notification_title">walking watch is on</string>
     <string name="notification_text">Runs in the background. The bar appears only when you walk heads-down.</string>
     <string name="notification_action_stop">Stop</string>
+
+    <!-- home tabs -->
+    <string name="tab_dashboard">Dashboard</string>
+    <string name="tab_debug">Debug</string>
+
+    <!-- onboarding: intro -->
+    <string name="onboarding_intro_title">Walk more.\nScroll less.</string>
+    <string name="onboarding_intro_body">Lookup senses when you’re walking with your eyes on the screen and raises a warning bar over your status bar — blue, then amber, then red as the risk climbs.</string>
+    <string name="onboarding_intro_demo_caption">This is how the bar reacts as confidence grows.</string>
+
+    <!-- onboarding: how it works -->
+    <string name="onboarding_how_title">How detection works</string>
+    <string name="onboarding_step1_title">It hears your steps</string>
+    <string name="onboarding_step1_body">Your accelerometer reveals a walking rhythm. The engine learns your gait over time and tunes itself to it.</string>
+    <string name="onboarding_step2_title">It sees where the phone is</string>
+    <string name="onboarding_step2_body">The tilt of the screen and the proximity sensor tell the engine whether the display is up in front of your face — or in your pocket.</string>
+    <string name="onboarding_step3_title">It warns you in real time</string>
+    <string name="onboarding_step3_body">Walking while looking at the screen makes the bar turn red. Everything runs on your device; nothing ever leaves your phone.</string>
+
+    <!-- onboarding: permissions -->
+    <string name="onboarding_permissions_title">Three things to allow</string>
+    <string name="onboarding_overlay_title">Draw over other apps</string>
+    <string name="onboarding_overlay_body">The warning must appear above whatever app you’re walking with. Lookup draws only a thin bar at the top of the screen — nothing else.</string>
+    <string name="onboarding_overlay_action">Allow overlay</string>
+    <string name="onboarding_notifications_title">Notifications</string>
+    <string name="onboarding_notifications_title_not_needed">Notifications (not needed)</string>
+    <string name="onboarding_notifications_body">Android requires an ongoing notification while the sensor service runs in the background. It stays silent and never interrupts you.</string>
+    <string name="onboarding_notifications_body_not_needed">Your Android version shows the background notification without asking for permission.</string>
+    <string name="onboarding_notifications_action">Allow notifications</string>
+    <string name="onboarding_battery_title">Run in the background</string>
+    <string name="onboarding_battery_body">The watch only works if it can run continuously — that’s the whole feature. Without this exemption most phone brands will kill it within minutes of you pocketing the phone, and the bar won’t be there when you need it. You can skip this, but expect the service to be unreliable on many devices.</string>
+    <string name="onboarding_battery_action">Allow in background</string>
+
+    <!-- onboarding: navigation -->
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_not_now">Not now</string>
+    <string name="onboarding_start">Start protection</string>
+    <string name="onboarding_overlay_hint">Grant overlay access to enable protection.</string>
+    <string name="onboarding_status_granted">Granted</string>
+    <string name="onboarding_status_not_granted">Not granted</string>
+
+    <!-- dashboard -->
+    <string name="dashboard_title">lookup</string>
+    <string name="dashboard_tagline">A background watch for heads-down walking.</string>
+    <string name="dashboard_banner_title">Overlay permission was revoked</string>
+    <string name="dashboard_banner_body">Protection stopped. Re-grant overlay access to continue.</string>
+    <string name="dashboard_banner_action">Grant</string>
+    <string name="dashboard_protection_title">Protection</string>
+    <string name="dashboard_protection_body">Runs continuously, even after reboot. The bar appears only while you’re walking heads-down.</string>
+    <string name="dashboard_status_service">Service</string>
+    <string name="dashboard_status_running">Running — monitoring sensors</string>
+    <string name="dashboard_status_stopped">Stopped</string>
+    <string name="dashboard_status_bar">Warning bar</string>
+    <string name="dashboard_bar_off">Off</string>
+    <string name="dashboard_bar_visible">Visible right now</string>
+    <string name="dashboard_bar_hidden">Hidden — appears during distraction</string>
+    <string name="dashboard_overlay_missing">Overlay access is missing — the bar can’t be drawn.</string>
+    <string name="dashboard_grant">Grant</string>
+    <string name="dashboard_battery_warning">Battery optimization is on — many phones will kill the service within minutes.</string>
+    <string name="dashboard_fix">Fix</string>
+    <string name="dashboard_sensitivity_title">Sensitivity</string>
+    <string name="dashboard_motion_title">Step detection</string>
+    <string name="dashboard_motion_desc">How easily walking motion is recognized.</string>
+    <string name="dashboard_look_title">Phone in view</string>
+    <string name="dashboard_look_desc">How wide the “screen up in front of you” angle is.</string>
+    <string name="dashboard_level_low">Low</string>
+    <string name="dashboard_level_medium">Medium</string>
+    <string name="dashboard_level_high">High</string>
+    <string name="dashboard_preview_title">Overlay preview</string>
+    <string name="dashboard_preview_live">Live — confidence %1$d%%. The real bar only appears while you’re walking heads-down.</string>
+    <string name="dashboard_preview_demo">Demo sweep — turn on protection for live values.</string>
+    <string name="dashboard_calibration_title">Self-calibration</string>
+    <string name="dashboard_calibration_running">Step threshold %1$.2f m/s² · baseline %2$d spm · %3$s</string>
+    <plurals name="dashboard_steps_learned">
+        <item quantity="one">%d step learned</item>
+        <item quantity="other">%d steps learned</item>
+    </plurals>
+    <string name="dashboard_calibration_idle">The engine tunes its step threshold and cadence baseline to your gait while it runs. Turn on protection to calibrate.</string>
+    <string name="dashboard_reset">Reset calibration</string>
+
+    <!-- debug -->
+    <string name="debug_confidence">Confidence</string>
+    <string name="debug_off_hint">off — turn on protection on the Dashboard</string>
+    <string name="debug_evidence_walking">Walking evidence</string>
+    <string name="debug_evidence_view">Phone in view</string>
+    <string name="debug_evidence_bar">Warning bar</string>
+    <string name="debug_chart_title">Linear acceleration</string>
+    <string name="debug_chart_legend">Line: deviation from gravity · Dashed: step threshold · Marks: detected steps</string>
+    <string name="debug_inputs_title">Fusion inputs</string>
+    <string name="debug_stat_cadence">Cadence</string>
+    <string name="debug_stat_cadence_value">%1$d spm</string>
+    <string name="debug_stat_tilt">Tilt</string>
+    <string name="debug_stat_tilt_value">%1$d°</string>
+    <string name="debug_stat_screen">Screen</string>
+    <string name="debug_on">On</string>
+    <string name="debug_off">Off</string>
+    <string name="debug_stat_proximity">Proximity</string>
+    <string name="debug_near">Near</string>
+    <string name="debug_far">Far</string>
+    <string name="debug_stat_threshold">Threshold</string>
+    <string name="debug_stat_threshold_value">%1$.2f m/s²</string>
+    <string name="debug_stat_baseline">Baseline</string>
+    <string name="debug_stat_baseline_value">%1$d spm</string>
+    <string name="debug_chart_unit">m/s²</string>
+    <string name="debug_chart_threshold_label">threshold %1$.2f</string>
+    <string name="debug_chart_window">last 10 s</string>
 </resources>

@@ -37,10 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.lookup.R
 import dev.lookup.data.SettingsRepository
 import dev.lookup.service.DetectionBus
 import dev.lookup.service.OverlayService
@@ -120,9 +123,9 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(8.dp))
 
         Column {
-            Text("lookup", style = MaterialTheme.typography.displaySmall)
+            Text(stringResource(R.string.dashboard_title), style = MaterialTheme.typography.displaySmall)
             Text(
-                "A background watch for heads-down walking.",
+                stringResource(R.string.dashboard_tagline),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -144,16 +147,16 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Overlay permission was revoked",
+                            stringResource(R.string.dashboard_banner_title),
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            "Protection stopped. Re-grant overlay access to continue.",
+                            stringResource(R.string.dashboard_banner_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = openOverlaySettings) { Text("Grant") }
+                    TextButton(onClick = openOverlaySettings) { Text(stringResource(R.string.dashboard_banner_action)) }
                 }
             }
         }
@@ -162,10 +165,9 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Protection", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.dashboard_protection_title), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Runs continuously, even after reboot. The bar appears " +
-                                "only while you're walking heads-down.",
+                            stringResource(R.string.dashboard_protection_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -190,40 +192,43 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 }
                 Spacer(Modifier.height(16.dp))
                 StatusRow(
-                    label = "Service",
-                    value = if (running) "Running — monitoring sensors" else "Stopped",
+                    label = stringResource(R.string.dashboard_status_service),
+                    value = if (running) {
+                        stringResource(R.string.dashboard_status_running)
+                    } else {
+                        stringResource(R.string.dashboard_status_stopped)
+                    },
                     ok = running,
                 )
                 StatusRow(
-                    label = "Warning bar",
+                    label = stringResource(R.string.dashboard_status_bar),
                     value = when {
-                        !running -> "Off"
-                        overlayActive -> "Visible right now"
-                        else -> "Hidden — appears during distraction"
+                        !running -> stringResource(R.string.dashboard_bar_off)
+                        overlayActive -> stringResource(R.string.dashboard_bar_visible)
+                        else -> stringResource(R.string.dashboard_bar_hidden)
                     },
                     ok = !running || overlayActive,
                 )
                 if (!overlayGranted) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "Overlay access is missing — the bar can't be drawn.",
+                            stringResource(R.string.dashboard_overlay_missing),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f),
                         )
-                        TextButton(onClick = openOverlaySettings) { Text("Grant") }
+                        TextButton(onClick = openOverlaySettings) { Text(stringResource(R.string.dashboard_grant)) }
                     }
                 }
                 if (!batteryExempt) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "Battery optimization is on — many phones will kill the " +
-                                "service within minutes.",
+                            stringResource(R.string.dashboard_battery_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                         )
-                        TextButton(onClick = openBatteryExemption) { Text("Fix") }
+                        TextButton(onClick = openBatteryExemption) { Text(stringResource(R.string.dashboard_fix)) }
                     }
                 }
             }
@@ -231,20 +236,20 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 
         Card {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Sensitivity", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.dashboard_sensitivity_title), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(12.dp))
                 SliderRow(
-                    title = "Step detection",
-                    description = "How easily walking motion is recognized.",
+                    title = stringResource(R.string.dashboard_motion_title),
+                    description = stringResource(R.string.dashboard_motion_desc),
                     value = settings.motionSensitivity,
-                    label = sensitivityLabel(settings.motionSensitivity),
+                    label = stringResource(sensitivityLabelRes(settings.motionSensitivity)),
                     onChange = SettingsRepository::setMotionSensitivity,
                 )
                 SliderRow(
-                    title = "Phone in view",
-                    description = "How wide the \"screen up in front of you\" angle is.",
+                    title = stringResource(R.string.dashboard_look_title),
+                    description = stringResource(R.string.dashboard_look_desc),
                     value = settings.lookSensitivity,
-                    label = sensitivityLabel(settings.lookSensitivity),
+                    label = stringResource(sensitivityLabelRes(settings.lookSensitivity)),
                     onChange = SettingsRepository::setLookSensitivity,
                 )
             }
@@ -252,16 +257,18 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 
         Card {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Overlay preview", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.dashboard_preview_title), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(12.dp))
                 ConfidenceBar(previewConfidence)
                 Spacer(Modifier.height(12.dp))
                 Text(
                     if (running) {
-                        "Live — confidence ${previewConfidence.roundToInt()}%. The real " +
-                            "bar only appears while you're walking heads-down."
+                        stringResource(
+                            R.string.dashboard_preview_live,
+                            previewConfidence.roundToInt(),
+                        )
                     } else {
-                        "Demo sweep — turn on protection for live values."
+                        stringResource(R.string.dashboard_preview_demo)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -271,20 +278,26 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 
         Card {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Self-calibration", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.dashboard_calibration_title), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 if (running) {
                     Text(
-                        "Step threshold ${"%.2f".format(snapshot.calibratedThreshold)} m/s\u00B2 " +
-                            "\u00B7 baseline ${snapshot.baselineCadenceSpm.roundToInt()} spm " +
-                            "\u00B7 ${snapshot.stepCount} steps learned",
+                        stringResource(
+                            R.string.dashboard_calibration_running,
+                            snapshot.calibratedThreshold,
+                            snapshot.baselineCadenceSpm.roundToInt(),
+                            pluralStringResource(
+                                R.plurals.dashboard_steps_learned,
+                                snapshot.stepCount,
+                                snapshot.stepCount,
+                            ),
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Text(
-                        "The engine tunes its step threshold and cadence baseline to " +
-                            "your gait while it runs. Turn on protection to calibrate.",
+                        stringResource(R.string.dashboard_calibration_idle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -299,7 +312,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                         )
                     },
                 ) {
-                    Text("Reset calibration")
+                    Text(stringResource(R.string.dashboard_reset))
                 }
             }
         }
@@ -362,8 +375,8 @@ private fun SliderRow(
     }
 }
 
-private fun sensitivityLabel(value: Float): String = when {
-    value < 0.34f -> "Low"
-    value < 0.67f -> "Medium"
-    else -> "High"
+private fun sensitivityLabelRes(value: Float): Int = when {
+    value < 0.34f -> R.string.dashboard_level_low
+    value < 0.67f -> R.string.dashboard_level_medium
+    else -> R.string.dashboard_level_high
 }
