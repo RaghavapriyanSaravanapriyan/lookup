@@ -5,26 +5,32 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.lookup.detection.OverlayPalette
+import dev.lookup.ui.terminal.Term
 import kotlin.math.min
 
 /**
- * Compose twin of the overlay warning bar: blue -> amber -> red gradient that
- * shifts with confidence, drawn 5 dp -> 12 dp inside a fixed 15 dp frame —
- * the same geometry as the real overlay. Full opacity throughout; at high
- * confidence it pulses via a slight height swell.
- * Used by the settings/dashboard preview and the debug screen.
+ * compose twin of the overlay warning bar, dressed for the terminal:
+ * black rail, hairline frame, blue -> amber -> red fill that shifts
+ * with confidence. the only coloured bar in the chrome.
  */
 @Composable
 fun ConfidenceBar(confidence: Float, modifier: Modifier = Modifier) {
@@ -43,15 +49,38 @@ fun ConfidenceBar(confidence: Float, modifier: Modifier = Modifier) {
         }
     }
     val density = LocalDensity.current
-    Canvas(modifier.height(15.dp)) {
-        val pulseBoost = if (pulsing) 1f + 0.12f * pulse.value else 1f
-        val basePx = with(density) { (5 + 7 * (animated / 100f)).dp.toPx() }
-        val barH = min(basePx * pulseBoost, size.height)
-        val corner = CornerRadius(barH / 2f, barH / 2f)
-        val (colorA, colorB) = OverlayPalette.colors(animated)
-        drawRoundRect(
-            brush = Brush.horizontalGradient(listOf(Color(colorA), Color(colorB))),
-            cornerRadius = corner,
-        )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Term.Bg, RoundedCornerShape(8.dp))
+            .border(1.dp, Term.Hairline, RoundedCornerShape(8.dp))
+            .padding(8.dp),
+    ) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(15.dp)) {
+            val pulseBoost = if (pulsing) 1f + 0.12f * pulse.value else 1f
+            val basePx = with(density) { (5 + 7 * (animated / 100f)).dp.toPx() }
+            val barH = min(basePx * pulseBoost, size.height)
+            val corner = CornerRadius(barH / 2f, barH / 2f)
+            val (colorA, colorB) = OverlayPalette.colors(animated)
+            // rail
+            drawRoundRect(
+                color = Term.Grid,
+                cornerRadius = corner,
+            )
+            drawRoundRect(
+                brush = Brush.horizontalGradient(listOf(Color(colorA), Color(colorB))),
+                cornerRadius = corner,
+            )
+            // gate ticks: 30 / 40 / 70
+            for (gate in listOf(30f, 40f, 70f)) {
+                val x = size.width * gate / 100f
+                drawLine(
+                    color = Color.White.copy(alpha = 0.65f),
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = 1.5f,
+                )
+            }
+        }
     }
 }

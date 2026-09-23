@@ -1,69 +1,73 @@
 package dev.lookup.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
 
-private val LightScheme = lightColorScheme(
-    primary = Color(0xFF2E6BFF),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFDCE6FF),
-    onPrimaryContainer = Color(0xFF001B42),
-    secondary = Color(0xFF585E71),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFDCE1F5),
-    onSecondaryContainer = Color(0xFF151B2C),
-    tertiary = Color(0xFFE58E00),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFFFDFAB),
-    onTertiaryContainer = Color(0xFF2A1700),
-    background = Color(0xFFFAFBFF),
-    onBackground = Color(0xFF1A1C20),
-    surface = Color(0xFFFAFBFF),
-    onSurface = Color(0xFF1A1C20),
-    surfaceVariant = Color(0xFFE1E2EC),
-    onSurfaceVariant = Color(0xFF44474F),
-    error = Color(0xFFBA1A1A),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
+/**
+ * lookup terminal theme: pure black & white, always dark.
+ * there is no light mode. light mode is for people who look up.
+ * colour lives only inside the live charts + the warning bar —
+ * everything else is ink, paper-inverted, and hairlines.
+ */
+private val TerminalScheme = darkColorScheme(
+    primary = Color(0xFFFFFFFF),
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFFFFFFFF),
+    onPrimaryContainer = Color(0xFF000000),
+    secondary = Color(0xFFA1A1AA),
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFF17181C),
+    onSecondaryContainer = Color(0xFFFFFFFF),
+    tertiary = Color(0xFFFFFFFF),
+    onTertiary = Color(0xFF000000),
+    tertiaryContainer = Color(0xFF17181C),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFFFFFFF),
+    surface = Color(0xFF000000),
+    onSurface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFF131417),
+    onSurfaceVariant = Color(0xFFA1A1AA),
+    surfaceContainerLowest = Color(0xFF000000),
+    surfaceContainerLow = Color(0xFF0B0C0E),
+    surfaceContainer = Color(0xFF131417),
+    surfaceContainerHigh = Color(0xFF1A1C20),
+    surfaceContainerHighest = Color(0xFF23252B),
+    outline = Color(0xFF26292F),
+    outlineVariant = Color(0xFF1A1C20),
+    error = Color(0xFFFFFFFF),
+    onError = Color(0xFF000000),
+    errorContainer = Color(0xFF1A1C20),
+    onErrorContainer = Color(0xFFFFFFFF),
 )
 
-private val DarkScheme = darkColorScheme(
-    primary = Color(0xFFB0C4FF),
-    onPrimary = Color(0xFF00296C),
-    primaryContainer = Color(0xFF003EA5),
-    onPrimaryContainer = Color(0xFFDCE6FF),
-    secondary = Color(0xFFC0C5D8),
-    onSecondary = Color(0xFF292F40),
-    secondaryContainer = Color(0xFF3F4657),
-    onSecondaryContainer = Color(0xFFDCE1F5),
-    tertiary = Color(0xFFFFB84D),
-    onTertiary = Color(0xFF492900),
-    tertiaryContainer = Color(0xFF6A3F00),
-    onTertiaryContainer = Color(0xFFFFDFAB),
-    background = Color(0xFF111318),
-    onBackground = Color(0xFFE2E2E9),
-    surface = Color(0xFF111318),
-    onSurface = Color(0xFFE2E2E9),
-    surfaceVariant = Color(0xFF44474F),
-    onSurfaceVariant = Color(0xFFC5C6D0),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A),
-    onErrorContainer = Color(0xFFFFDAD6),
+private val Mono = FontFamily.Monospace
+
+private val TerminalTypography = Typography(
+    displayLarge = TextStyle(fontFamily = Mono, fontSize = 52.sp, lineHeight = 52.sp),
+    displayMedium = TextStyle(fontFamily = Mono, fontSize = 40.sp, lineHeight = 40.sp),
+    displaySmall = TextStyle(fontFamily = Mono, fontSize = 28.sp, lineHeight = 32.sp),
+    headlineMedium = TextStyle(fontFamily = Mono, fontSize = 20.sp, lineHeight = 26.sp),
+    titleMedium = TextStyle(fontFamily = Mono, fontSize = 14.sp, lineHeight = 20.sp),
+    titleSmall = TextStyle(fontFamily = Mono, fontSize = 12.sp, lineHeight = 16.sp),
+    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
+    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
+    bodySmall = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
+    labelMedium = TextStyle(fontFamily = Mono, fontSize = 12.sp, lineHeight = 16.sp),
+    labelSmall = TextStyle(fontFamily = Mono, fontSize = 10.sp, lineHeight = 14.sp),
 )
 
 @Composable
-fun LookupTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
+fun LookupTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkScheme else LightScheme,
+        colorScheme = TerminalScheme,
+        typography = TerminalTypography,
         content = content,
     )
 }
